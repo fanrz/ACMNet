@@ -12,8 +12,15 @@ if __name__ == '__main__':
     train_data_loader = create_dataloader(opt)
     train_dataset_size = len(train_data_loader)   
     print('#training images = %d' % train_dataset_size)
+    # 
+    print('opt will be printed.')
+    print(opt)
 
     model = create_model(opt)
+    # 
+    print('model will be printed.')
+    print(model)
+
     model.setup(opt)
     save_results = SaveResults(opt)
     total_steps = 0

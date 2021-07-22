@@ -8,13 +8,16 @@ def find_model_using_name(model_name):
     # will be imported.
 
     model_filename = "models." + model_name.lower() + "_model"
+    print(model_filename)
     modellib = importlib.import_module(model_filename)
+    print(modellib)
 
     # In the file, the class called ModelNameModel() will
     # be instantiated. It has to be a subclass of BaseModel,
     # and it is case-insensitive.
     model = None
     target_model_name = model_name.replace('_', '') + 'model'
+    print(target_model_name)
     for name, cls in modellib.__dict__.items():
         if name.lower() == target_model_name.lower() \
            and issubclass(cls, BaseModel):
@@ -34,6 +37,7 @@ def get_option_setter(model_name):
 
 def create_model(opt):
     model = find_model_using_name(opt.model)
+    print(model)
     instance = model()
     instance.initialize(opt)
     instance.print_networks()
