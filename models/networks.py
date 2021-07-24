@@ -180,6 +180,10 @@ class SmoothLoss(nn.Module):
         
         return loss
 
+# this is a two-layer MLP, the first one followed by one LeakyReLU
+# input: in_channel
+# output: 1
+# only 1 channel output
 class MLP(nn.Module):
     def __init__(self, in_channels):
         super(MLP, self).__init__()
@@ -188,8 +192,8 @@ class MLP(nn.Module):
         self.ln2 = nn.Linear(in_channels//2, 1)
 
     def forward(self, x):
-
-       return self.ln2(F.leaky_relu(self.ln1(x), 0.2))
+        # nn.Linear(F.leaky_relu(nn.Linear(in_channels, in_channels//2), 0.2))
+        return self.ln2(F.leaky_relu(self.ln1(x), 0.2))
 
 
 class CoAttnGPBlock(nn.Module):
@@ -206,7 +210,8 @@ class CoAttnGPBlock(nn.Module):
         self.r_conv0 = conv2d(in_channels, channels, stride=stride)
         self.r_conv1 = conv2d(in_channels, channels, stride=stride, relu=False)
         self.r_conv2 = conv2d(channels, channels, relu=False)
-
+        # d is for depth, feature from channels*2+3 to 1 
+        # r is for rgb, feature from channels*2+3 to 1 
         self.d_mlp = MLP(channels*2+3)
         self.r_mlp = MLP(channels*2+3)
         self.d_bias = Parameter(torch.zeros(channels))
@@ -230,17 +235,27 @@ class CoAttnGPBlock(nn.Module):
         
         d_sfeat = gather_operation(d_feat0.view(b, c, -1), sidxs)
         r_sfeat = gather_operation(r_feat0.view(b, c, -1), sidxs)
-
+        # grouping_operation is a function
         nnpoints = grouping_operation(spoints, nnidxs) 
         d_nnfeat = grouping_operation(d_sfeat, nnidxs) 
         r_nnfeat = grouping_operation(r_sfeat, nnidxs) 
-
+        # these are distance from point, depth and rgb
         points_dist = (nnpoints - spoints.view(b, 3, -1, 1)).view(b, 3, -1)
         d_feat_dist = (d_nnfeat - d_sfeat.view(b, c, -1, 1)).view(b, c, -1)
         r_feat_dist = (r_nnfeat - r_sfeat.view(b, c, -1, 1)).view(b, c, -1) 
+        # get the distance of features
         feats = torch.cat((d_feat_dist, r_feat_dist, points_dist), 1).permute(0, 2, 1) 
-
+        # d_mlp: feature -> Linear -> leaky_relu -> Linear : self.d_mlp(feats)
+        # view: a resize function : self.d_mlp(feats).view(b, -1, k, 1)
+        # torch.softmax(X, 2): dim=2, sum of 2th dimension is 1
+        # permute: chanhe the dimension
+        # get the attention
         d_attn = torch.softmax(self.d_mlp(feats).view(b, -1, k, 1), 2).permute(0, 3, 1, 2) 
+        # d_mlp: feature -> Linear -> leaky_relu -> Linear : self.d_mlp(feats)
+        # view: a resize function : self.d_mlp(feats).view(b, -1, k, 1)
+        # torch.softmax(X, 2): dim=2, sum of 2th dimension is 1
+        # permute: chanhe the dimension
+        # get the attention
         r_attn = torch.softmax(self.r_mlp(feats).view(b, -1, k, 1), 2).permute(0, 3, 1, 2)
 
         d_feat = torch.sum(d_attn * d_nnfeat, 3) + self.d_bias.view(1, c, 1)
