@@ -9,17 +9,20 @@ import cv2
 
 if __name__ == '__main__':
     opt = TrainOptions().parse()
+    print('opt will be printed.')
+    print(opt)
+    print('model will be printed out')
+
     train_data_loader = create_dataloader(opt)
     train_dataset_size = len(train_data_loader)   
     print('#training images = %d' % train_dataset_size)
-    # 
-    print('opt will be printed.')
-    print(opt)
 
     model = create_model(opt)
-    # 
-    print('model will be printed.')
     print(model)
+
+    # train_data_loader = create_dataloader(opt)
+    # train_dataset_size = len(train_data_loader)   
+    # print('#training images = %d' % train_dataset_size)
 
     model.setup(opt)
     save_results = SaveResults(opt)

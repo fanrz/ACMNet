@@ -222,12 +222,21 @@ class CoAttnGPBlock(nn.Module):
     sidxs: b*ns
     nnidxs: b*ns*k
     masks: b*1*h*w
+    
     """
-    def forward(self, d_feat, r_feat, spoints, sidxs,  nnidxs, masks, nsamples):
 
+    # take 
+    # d_feat1, r_feat1 = self.cpblock10(d_feat0, r_feat0, spoints[0], sidxs[0], nnidxs[0], masks[0], self.nsamples[0])
+    # for example
+    # 
+    def forward(self, d_feat, r_feat, spoints, sidxs,  nnidxs, masks, nsamples):
+        # standard convolution
         d_feat0 = self.d_conv0(d_feat)
+        # standard convolution 
         d_feat1 = self.d_conv1(d_feat)
+        # standard convolution 
         r_feat0 = self.r_conv0(r_feat)
+        # standard convolution 
         r_feat1 = self.r_conv1(r_feat)
 
         b, c, h, w = d_feat0.shape
@@ -306,7 +315,7 @@ class DCOMPNet(nn.Module):
         self.knn = [x + 1 for x in knn]
         self.nsamples = nsamples
         self.scale = scale
-
+        # standard convolution
         self.d_conv00 = conv2d(1, 32)
         self.d_conv01 = conv2d(32, 32)
         self.r_conv00 = conv2d(3, 32)
@@ -365,11 +374,28 @@ class DCOMPNet(nn.Module):
         self.f_out = nn.Conv2d(32, 1, kernel_size=1, padding=0)
 
     def forward(self, depth, rgb, K):
-       
+        # to generate 3d point cloud
         spoints, sidxs, nnidxs, masks = gen_3dpoints(depth, K, 3, self.knn, self.nsamples)
+        print('spoints.shape is', spoints.shape)      
+        print('sidxs.shape is',   sidxs.shape)  
+        print('nnidxs.shape is',  nnidxs.shape)      
+        print('masks.shape is',   masks.shape)  
+        # to get feature of depth and rgb
+        # scale = 80, depth/scale 
+        # 
+        print('depth.shape is',depth.shape)
+        print('scale is',scale)
+        # to get channels = 32 feature, size not changed
         d_feat0 = self.d_conv01(self.d_conv00(depth/self.scale))
+        print('d_feat0.shape is',d_feat0.shape)
+        # to get channels = 32 feature, size not changed
         r_feat0 = self.r_conv01(self.r_conv00(rgb))
+        print('r_feat0.shape is',r_feat0.shape)
 
+        # notice, this is co-attetnio block
+        # nsamples are 10000 5000 2500
+        # d_feat0, r_feat0, 
+        print('self.nsamples[0] is',self.nsamples[0])
         d_feat1, r_feat1 = self.cpblock10(d_feat0, r_feat0, spoints[0], sidxs[0], nnidxs[0], masks[0], self.nsamples[0])
         d_feat1, r_feat1 = self.cpblock11(d_feat1, r_feat1, spoints[0], sidxs[0], nnidxs[0], masks[0], self.nsamples[0])
         d_feat2, r_feat2 = self.cpblock20(d_feat1, r_feat1, spoints[1], sidxs[1], nnidxs[1], masks[1], self.nsamples[1])

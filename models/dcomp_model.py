@@ -1,5 +1,6 @@
 import torch
 import itertools
+# need module from other modules...
 from .base_model import BaseModel
 from . import networks
 import torch.nn.functional as F
@@ -66,6 +67,9 @@ class DCOMPModel(BaseModel):
 
     def forward(self):
         if self.opt.clip:
+            # image's size 1242*375
+            # groundtruth's size 1242*375
+            # in depth selection file, image's size : 1216*352
             c = 352-256
         else:
             c = 0
