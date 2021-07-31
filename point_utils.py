@@ -75,7 +75,7 @@ class GatherOperation(Function):
         torch.Tensor
             (B, C, npoint) tensor
         """
-
+        # 
         _, C, N = features.size()
 
         ctx.for_backwards = (idx, C, N)
@@ -89,7 +89,7 @@ class GatherOperation(Function):
         grad_features = pl.gather_points_grad(grad_out.contiguous(), idx, N)
         return grad_features, None
 
-
+# 
 gather_operation = GatherOperation.apply
 
 class GroupingOperation(Function):

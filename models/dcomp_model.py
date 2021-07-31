@@ -54,7 +54,11 @@ class DCOMPModel(BaseModel):
             self.optimizers += [self.optimizer]
             
     def set_input(self, input):
-
+        # input is data from dataloader
+        # img:      [batch, height, width, channel]
+        # sparse:   [batch, height, width]
+        # gt:       [batch, height, width]
+        # K
         if self.isTrain:
             self.sparse = input['sparse'].to(self.device) 
             self.img = input['img'].to(self.device)
@@ -74,12 +78,18 @@ class DCOMPModel(BaseModel):
         else:
             c = 0
 
+        # clip operation
         self.sparse = self.sparse[:, :, c:, :]
         self.img = self.img[:, :, c:, :]        
         self.gt = self.gt[:, :, c:, :]
-
+        
+        # batch
         b = self.sparse.shape[0]
+        # n=0, you have one gpu.
         n = len(self.opt.gpu_ids)
+        # you have more gpu than the num of batch.
+        # just copy your batch
+        # actually it is not true. 
         if b < n:
             self.sparse = self.sparse.repeat(n,1,1,1)
             self.img = self.img.repeat(n,1,1,1)
@@ -89,7 +99,10 @@ class DCOMPModel(BaseModel):
             self.img = self.img.narrow(0,0,n)
             self.gt = self.gt.narrow(0,0,n)
             self.K = self.K.narrow(0,0,n)
-
+        # Here, I guess.
+        # sparse:   [batch, height, width, channel]
+        # img:      [batch, height, width, channel] 
+        # K:        ???
         out = self.netDC(self.sparse, self.img, self.K)
         self.pred = out[0]
         self.pred_d = out[1]

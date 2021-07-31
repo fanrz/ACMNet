@@ -59,7 +59,7 @@ def init_net(net, init_type='normal', init_gain=0.02, gpu_ids=[], need_init=True
     	init_weights(net, init_type, gain=init_gain)
     return net
 
-
+# this is a decovoluiton operation
 def deconv(in_channels, out_channels, kernel_size=4, padding=1, stride=2, relu=True):
     layers = []
     layers += [nn.ConvTranspose2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, stride=stride)]
@@ -75,6 +75,16 @@ def conv2d(in_channels, out_channels, kernel_size=3, padding=1, stride=1, relu=T
         layers += [nn.ReLU(inplace=True)]
 
     return nn.Sequential(*layers)
+
+
+
+# # Here, I guess.
+# # sparse:   [batch, height, width, channel]
+# # img:      [batch, height, width, channel] 
+# # K:        ???
+# def forward(self, depth, rgb, K):
+#     # to generate 3d point cloud
+#     # you just use depth info and K to realize a point cloud.
 
 def gen_3dpoints(depth, K, levels=3, knn=[9], nsamples=[10000]):
     n, c, h, w = depth.shape
@@ -228,7 +238,12 @@ class CoAttnGPBlock(nn.Module):
     # take 
     # d_feat1, r_feat1 = self.cpblock10(d_feat0, r_feat0, spoints[0], sidxs[0], nnidxs[0], masks[0], self.nsamples[0])
     # for example
-    # 
+    # d_feat0, b*c*h*w, depth feature 
+    # r_feat, b*c*h*w, rgb feature 
+    # spoints, b*3*ns, sparse points
+    # sidxs, b*ns, sparse points indexs
+    # nnidxs, b*ns*k sparse points'k neighbors  
+    # masks, b*1*h*w mask
     def forward(self, d_feat, r_feat, spoints, sidxs,  nnidxs, masks, nsamples):
         # standard convolution
         d_feat0 = self.d_conv0(d_feat)
@@ -239,37 +254,59 @@ class CoAttnGPBlock(nn.Module):
         # standard convolution 
         r_feat1 = self.r_conv1(r_feat)
 
+        # batch, channel, height, width
         b, c, h, w = d_feat0.shape
+        # k is num of node
         k = nnidxs.shape[2]
         
+        # d_feat0.view(b, c, -1) -> d_feat0, b, c, h*w
+        # 
+        print('d_sfeat.shape is',d_sfeat.shape)
         d_sfeat = gather_operation(d_feat0.view(b, c, -1), sidxs)
+        print('r_feat0.shape is',r_feat0.shape)
         r_sfeat = gather_operation(r_feat0.view(b, c, -1), sidxs)
+
         # grouping_operation is a function
         nnpoints = grouping_operation(spoints, nnidxs) 
         d_nnfeat = grouping_operation(d_sfeat, nnidxs) 
         r_nnfeat = grouping_operation(r_sfeat, nnidxs) 
         # these are distance from point, depth and rgb
+        # spoints, b*3*ns, sparse points
+        # by spoints.view(b, 3, -1, 1)
+        # spoints, b*3*ns*1
+        # distances of neoghbors to node
         points_dist = (nnpoints - spoints.view(b, 3, -1, 1)).view(b, 3, -1)
+        # depth feature distance
         d_feat_dist = (d_nnfeat - d_sfeat.view(b, c, -1, 1)).view(b, c, -1)
+        # rgb feature distance
         r_feat_dist = (r_nnfeat - r_sfeat.view(b, c, -1, 1)).view(b, c, -1) 
         # get the distance of features
+        # distance from depth feature
+        # distance from rgb feature
+        # feature from point
         feats = torch.cat((d_feat_dist, r_feat_dist, points_dist), 1).permute(0, 2, 1) 
         # d_mlp: feature -> Linear -> leaky_relu -> Linear : self.d_mlp(feats)
         # view: a resize function : self.d_mlp(feats).view(b, -1, k, 1)
         # torch.softmax(X, 2): dim=2, sum of 2th dimension is 1
         # permute: chanhe the dimension
         # get the attention
+        # this is a depth MLP function.
+        # d_mlp has a same funciton as r_mlp
         d_attn = torch.softmax(self.d_mlp(feats).view(b, -1, k, 1), 2).permute(0, 3, 1, 2) 
-        # d_mlp: feature -> Linear -> leaky_relu -> Linear : self.d_mlp(feats)
-        # view: a resize function : self.d_mlp(feats).view(b, -1, k, 1)
+        # r_mlp: feature -> Linear -> leaky_relu -> Linear : self.r_mlp(feats)
+        # view: a resize function : self.r_mlp(feats).view(b, -1, k, 1)
         # torch.softmax(X, 2): dim=2, sum of 2th dimension is 1
         # permute: chanhe the dimension
         # get the attention
+        # this is a rgb MLP function.
         r_attn = torch.softmax(self.r_mlp(feats).view(b, -1, k, 1), 2).permute(0, 3, 1, 2)
-
+        # XXXX = depth_attention * depth_feature + depth_bias
+        # XXXX = rgb_attention   * rgb_feature   + rgb_bias
         d_feat = torch.sum(d_attn * d_nnfeat, 3) + self.d_bias.view(1, c, 1)
         r_feat = torch.sum(r_attn * r_nnfeat, 3) + self.r_bias.view(1, c, 1)
-        
+        # 
+        # 
+        # 
         d_feat_new = torch.zeros(b, c, h*w).to(d_feat.get_device())
         r_feat_new = torch.zeros(b, c, h*w).to(d_feat.get_device())
         for i in range(b):
@@ -373,8 +410,14 @@ class DCOMPNet(nn.Module):
         self.f_conv1_2 = nn.Sequential(conv2d(32, 32, stride=2), conv2d(32, 32, relu=False))
         self.f_out = nn.Conv2d(32, 1, kernel_size=1, padding=0)
 
+
+    # Here, I guess.
+    # sparse:   [batch, height, width, channel]
+    # img:      [batch, height, width, channel] 
+    # K:        ???
     def forward(self, depth, rgb, K):
         # to generate 3d point cloud
+        # you just use depth info and K to realize a point cloud.
         spoints, sidxs, nnidxs, masks = gen_3dpoints(depth, K, 3, self.knn, self.nsamples)
         print('spoints.shape is', spoints.shape)      
         print('sidxs.shape is',   sidxs.shape)  

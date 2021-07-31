@@ -38,6 +38,7 @@ if __name__ == '__main__':
         # training
         print("training stage (epoch: %s) starting...................." % epoch)
         for ind, data in enumerate(train_data_loader):
+            # here, data is [batch, ]
             iter_start_time = time.time()
             if total_steps % opt.print_freq == 0:
                 t_data = iter_start_time - iter_data_time
