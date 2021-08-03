@@ -419,21 +419,21 @@ class DCOMPNet(nn.Module):
         # to generate 3d point cloud
         # you just use depth info and K to realize a point cloud.
         spoints, sidxs, nnidxs, masks = gen_3dpoints(depth, K, 3, self.knn, self.nsamples)
-        print('spoints.shape is', spoints.shape)      
-        print('sidxs.shape is',   sidxs.shape)  
-        print('nnidxs.shape is',  nnidxs.shape)      
-        print('masks.shape is',   masks.shape)  
+        # print('spoints.shape is', spoints.shape)      
+        # print('sidxs.shape is',   sidxs.shape)  
+        # print('nnidxs.shape is',  nnidxs.shape)      
+        # print('masks.shape is',   masks.shape)  
         # to get feature of depth and rgb
         # scale = 80, depth/scale 
         # 
-        print('depth.shape is',depth.shape)
-        print('scale is',scale)
+        # print('depth.shape is',depth.shape)
+        # print('scale is',scale)
         # to get channels = 32 feature, size not changed
-        d_feat0 = self.d_conv01(self.d_conv00(depth/self.scale))
+        # d_feat0 = self.d_conv01(self.d_conv00(depth/self.scale))
         print('d_feat0.shape is',d_feat0.shape)
         # to get channels = 32 feature, size not changed
         r_feat0 = self.r_conv01(self.r_conv00(rgb))
-        print('r_feat0.shape is',r_feat0.shape)
+        # print('r_feat0.shape is',r_feat0.shape)
 
         # notice, this is co-attetnio block
         # nsamples are 10000 5000 2500

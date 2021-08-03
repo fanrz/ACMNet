@@ -31,6 +31,8 @@ if __name__ == '__main__':
     lr = opt.lr
 
     for epoch in range(opt.epoch_count, opt.niter + 1):
+        print('opt.epoch_count is',opt.epoch_count)
+        print('opt.niter is',opt.niter)
         epoch_start_time = time.time()
         iter_data_time = time.time()
         epoch_iter = 0
