@@ -115,7 +115,7 @@ class DCOMPModel(BaseModel):
         # K:        ???
         out = self.netDC(self.sparse, self.img, self.K)
         print('in the dcomp model block, out is',out)
-        print('in the dcomp model block, out shape is',out.shape)
+        # print('in the dcomp model block, out shape is',out.shape)
         self.pred = out[0]
         self.pred_d = out[1]
         self.pred_r = out[2]

@@ -88,6 +88,7 @@ def conv2d(in_channels, out_channels, kernel_size=3, padding=1, stride=1, relu=T
 
 def gen_3dpoints(depth, K, levels=3, knn=[9], nsamples=[10000]):
     n, c, h, w = depth.shape
+    print('notice, K is',K)
     print('in the function gen_3dpoints, n, c, h, w of depth.shape', depth.shape)
     xx = torch.arange(0, w).view(1, -1).repeat(h, 1).float().cuda().view(1, 1, h, w).repeat(n, 1, 1, 1)
     print('xx is ',xx.shape)
