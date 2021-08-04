@@ -60,6 +60,7 @@ class DCOMPModel(BaseModel):
         # gt:       [batch, height, width]
         # K
         if self.isTrain:
+            print('important!!! set_input of dcomp_model is loaded')
             self.sparse = input['sparse'].to(self.device) 
             self.img = input['img'].to(self.device)
             self.gt = input['gt'].to(self.device) 
@@ -74,15 +75,21 @@ class DCOMPModel(BaseModel):
             # image's size 1242*375
             # groundtruth's size 1242*375
             # in depth selection file, image's size : 1216*352
+            print('important!!! clip function is implemented')
             c = 352-256
+            print('c is', c)
         else:
             c = 0
 
         # clip operation
-        self.sparse = self.sparse[:, :, c:, :]
+        self.sparse = self.sparse[:, :, c:, :]      
         self.img = self.img[:, :, c:, :]        
         self.gt = self.gt[:, :, c:, :]
-        
+
+        print('self.sparse shape is', self.sparse.shape)        
+        print('self.img shape is', self.img.shape)
+        print('self.gt shape is', self.gt.shape)
+
         # batch
         b = self.sparse.shape[0]
         # n=0, you have one gpu.
@@ -91,6 +98,7 @@ class DCOMPModel(BaseModel):
         # just copy your batch
         # actually it is not true. 
         if b < n:
+            print('this step b<n is ok')
             self.sparse = self.sparse.repeat(n,1,1,1)
             self.img = self.img.repeat(n,1,1,1)
             self.gt = self.gt.repeat(n,1,1,1)
@@ -99,14 +107,21 @@ class DCOMPModel(BaseModel):
             self.img = self.img.narrow(0,0,n)
             self.gt = self.gt.narrow(0,0,n)
             self.K = self.K.narrow(0,0,n)
+        else:
+            print('this step b<n is not ok')
         # Here, I guess.
         # sparse:   [batch, height, width, channel]
         # img:      [batch, height, width, channel] 
         # K:        ???
         out = self.netDC(self.sparse, self.img, self.K)
+        print('in the dcomp model block, out is',out)
+        print('in the dcomp model block, out shape is',out.shape)
         self.pred = out[0]
         self.pred_d = out[1]
         self.pred_r = out[2]
+        print('in the dcomp model block, self.pred shape is',self.pred.shape)
+        print('in the dcomp model block, self.pred_d shape is',self.pred_d.shape)
+        print('in the dcomp model block, self.pred_r shape is',self.pred_r.shape)
     
     def backward(self):
 
@@ -132,6 +147,7 @@ class DCOMPModel(BaseModel):
     def optimize_parameters(self):
 
         self.forward()
+        print('important!!! optimize_parameters of dcomp_model is loaded')
         for optimizer in self.optimizers:
             optimizer.zero_grad()
         self.backward()

@@ -16,6 +16,7 @@ class BaseModel():
         return 'BaseModel'
 
     def initialize(self, opt):
+        print('this function, initialize of BaseModel works')
         self.opt = opt
         self.gpu_ids = opt.gpu_ids
         self.isTrain = opt.isTrain
@@ -28,6 +29,7 @@ class BaseModel():
         self.image_paths = []
 
     def set_input(self, input):
+        print('important!!! set_input of base_model is loaded')
         self.input = input
 
     def forward(self):
@@ -65,6 +67,7 @@ class BaseModel():
         return self.image_paths
 
     def optimize_parameters(self):
+        print('important!!! optimize_parameters of base_model is loaded')
         pass
 
     # update learning rate (called once every epoch)
@@ -86,6 +89,7 @@ class BaseModel():
 
     # return traning losses/errors. train.py will print out these errors as debugging information
     def get_current_losses(self):
+        print('important!!! get_current_losses of base_model is loaded')
         errors_ret = OrderedDict()
         for name in self.loss_names:
             if isinstance(name, str):
@@ -155,6 +159,8 @@ class BaseModel():
             
     # print network information
     def print_networks(self, verbose=False):
+        print('#'*10)
+        print('net will be printed')
         for name in self.model_names:
             if isinstance(name, str):
                 net = getattr(self, 'net' + name)

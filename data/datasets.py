@@ -16,7 +16,13 @@ class KittiDataset(data.Dataset):
         self.joint_transform = joint_transform
         self.phase = phase
         self.no_gt = False
-
+        print('*'*20)
+        print('in class of KittiDataset')
+        print('root is',root)
+        print('data_file is',data_file)
+        print('joint_transform is',joint_transform)
+        print('phase is',phase)
+        # print('no_gt is',no_gt)
         with open(osp.join(self.root, self.data_file), 'r') as f:
             data_list = f.read().split('\n')
             for data in data_list:
@@ -38,6 +44,8 @@ class KittiDataset(data.Dataset):
                         })
                     self.no_gt = True
         self.nSamples = len(self.files)
+        #  you hhave only 98 samples
+        print('nSamples is',len(self.files))
 
         
     def __len__(self):
@@ -59,7 +67,7 @@ class KittiDataset(data.Dataset):
                     except ValueError:
                         # casting error: data[key] already eq. value, so pass
                         pass
-
+        print('in the read_calib_file, data is ', data)
         return data
 
     def read_data(self, index):
@@ -78,9 +86,13 @@ class KittiDataset(data.Dataset):
         # read intrinsics
         if self.phase == 'train':
             calib_dir = self.files[index]['rgb'][0:14]
+            print('calib_dir is ', calib_dir)
             cam2cam = self.read_calib_file(osp.join(self.root, calib_dir, 'calib_cam_to_cam.txt'))
             P2_rect = cam2cam['P_rect_02'].reshape(3,4)
+            print('here, reshape(3,4) works')
+            print('P2_rect is ',P2_rect)
             K = P2_rect[:, :3].astype(np.float32)
+            print('in the dataset function, K is ',K)
 
         elif self.phase in ['val', 'test']:
             calib_name = self.files[index]['sparse'].replace('_velodyne_raw_', '_image_').replace('png', 'txt').replace('velodyne_raw', 'intrinsics')
@@ -102,9 +114,22 @@ class KittiDataset(data.Dataset):
             img = img[h-H:, s:s+1216]
             gt = gt[h-H:, s:s+1216]
             sparse = sparse[h-H:, s:s+1216]
+            print('H is',H)
+            print('s is',s)
+            print('img shape is',img.shape)
+            print('gt shape is',gt.shape)
+            print('sparse shape is',sparse.shape)
+            print('K is',K)
             if self.phase == 'train':
                 K[0, 2] = K[0, 2] - s
                 K[1, 2] = K[1, 2] - (h-H)
+                print('after conv, K is',K)
+        
+        print('img.shape is',img.shape)
+        print('sparse.shape is',sparse.shape)
+        print('gt.shape is',gt.shape)
+        print('K.shape is',K.shape)
+        
 
         return img, gt, sparse, K
     
@@ -121,6 +146,8 @@ class KittiDataset(data.Dataset):
         data['sparse'] = sparse
         data['K'] = K
 
+        # print('in the __getitem__ function, the size of data is',data.shape)
+        
         return data
 
 

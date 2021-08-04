@@ -88,8 +88,11 @@ def conv2d(in_channels, out_channels, kernel_size=3, padding=1, stride=1, relu=T
 
 def gen_3dpoints(depth, K, levels=3, knn=[9], nsamples=[10000]):
     n, c, h, w = depth.shape
+    print('in the function gen_3dpoints, n, c, h, w of depth.shape', depth.shape)
     xx = torch.arange(0, w).view(1, -1).repeat(h, 1).float().cuda().view(1, 1, h, w).repeat(n, 1, 1, 1)
+    print('xx is ',xx.shape)
     yy = torch.arange(0, h).view(-1, 1).repeat(1, w).float().cuda().view(1, 1, h, w).repeat(n, 1, 1, 1)
+    print('yy is ',yy.shape)
 
     assert len(knn) == levels and len(nsamples) == levels
     
@@ -98,18 +101,41 @@ def gen_3dpoints(depth, K, levels=3, knn=[9], nsamples=[10000]):
     nnidxs = []
     masks = []
     for i in range(1, levels+1):
+        print('depth is ',depth.shape)
         depth, max_ind = F.max_pool2d(depth, kernel_size=2, stride=2, return_indices=True)
+        print('after F.max_pool2d function, you will get depth, max_ind')
+        print('depth is ',depth.shape)
+        print('max_ind is ',max_ind.shape)
+        print('depth is ',depth)
+        print('max_ind is ',max_ind)
         xy = torch.cat([xx, yy], 1).view(n, 2, -1)
+        print('xy is ',xy.shape)
+        print('xy is ',xy)
         xy = gather_operation(xy, max_ind.view(n, -1).int())
+        print('after gather_operation operation')
+        # xy is  torch.Size([2, 2, 77824]) ---- /4
+        print('xy is ',xy.shape) 
+        print('xy is ',xy)
         xx = xy[:, 0, :].view(n, 1, h//2**i, w//2**i)
         yy = xy[:, 1, :].view(n, 1, h//2**i, w//2**i)
+        print('xx is ',xx.shape)
+        print('xx is ',xx)
+        print('yy is ',yy.shape)
+        print('yy is ',yy)
         
         mask = (depth > 0).int()
+        print('mask is ',mask.shape)
+        print('mask is ',mask)
         new_mask = torch.zeros_like(mask.view(n, -1))
+        print('new_mask is ',new_mask.shape)
+        print('new_mask is ',new_mask)
 
         # sampling
         vp_num = torch.sum(mask, (2,3)).min()
+        print('nsamples is ',nsamples)
         num_sam = nsamples[i-1]          
+        print('num_sam is ',num_sam)
+        # n is batch
         for j in range(n):
             
             all_idx = torch.arange(mask.shape[2]*mask.shape[3]).reshape(1, -1).cuda().int()
@@ -261,8 +287,9 @@ class CoAttnGPBlock(nn.Module):
         
         # d_feat0.view(b, c, -1) -> d_feat0, b, c, h*w
         # 
-        print('d_sfeat.shape is',d_sfeat.shape)
+        
         d_sfeat = gather_operation(d_feat0.view(b, c, -1), sidxs)
+        print('d_sfeat.shape is',d_sfeat.shape)
         print('r_feat0.shape is',r_feat0.shape)
         r_sfeat = gather_operation(r_feat0.view(b, c, -1), sidxs)
 
@@ -429,8 +456,8 @@ class DCOMPNet(nn.Module):
         # print('depth.shape is',depth.shape)
         # print('scale is',scale)
         # to get channels = 32 feature, size not changed
-        # d_feat0 = self.d_conv01(self.d_conv00(depth/self.scale))
-        print('d_feat0.shape is',d_feat0.shape)
+        d_feat0 = self.d_conv01(self.d_conv00(depth/self.scale))
+        # print('d_feat0.shape is',d_feat0.shape)
         # to get channels = 32 feature, size not changed
         r_feat0 = self.r_conv01(self.r_conv00(rgb))
         # print('r_feat0.shape is',r_feat0.shape)

@@ -42,6 +42,7 @@ def create_model(opt):
     model = find_model_using_name(opt.model)
     print('after find_model_using_name, model is',model)
     instance = model()
+    print('in the create model, instance is',instance)
     instance.initialize(opt)
     instance.print_networks()
     print("model [%s] was created" % (instance.name()))
